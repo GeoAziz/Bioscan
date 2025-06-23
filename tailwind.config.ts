@@ -11,7 +11,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        headline: ['"Space Grotesk"', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -88,10 +88,20 @@ export default {
             height: '0',
           },
         },
+        'glow-pulse': {
+          '0%, 100%': { opacity: '0.7', 'box-shadow': '0 0 10px hsl(var(--primary))' },
+          '50%': { opacity: '1', 'box-shadow': '0 0 20px hsl(var(--primary)), 0 0 30px hsl(var(--primary))' },
+        },
+        'dna-spin': {
+          '0%': { transform: 'rotateY(0deg)' },
+          '100%': { transform: 'rotateY(360deg)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+        'dna-spin': 'dna-spin 15s linear infinite',
       },
     },
   },
