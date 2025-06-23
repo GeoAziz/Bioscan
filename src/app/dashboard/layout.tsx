@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   SidebarProvider,
   Sidebar,
@@ -11,14 +12,14 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PatientCard, PatientCardSkeleton } from "@/components/dashboard/patient-card";
-import { Bell, LogOut, Settings, Shield } from "lucide-react";
+import { UserCard, UserCardSkeleton } from "@/components/dashboard/user-card";
+import { Bell, LogOut, Settings, Shield, User, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "@/hooks/use-toast";
-import { PatientDataProvider, usePatientData } from "@/context/patient-data-context";
+import { UserDataProvider, useUserData } from "@/context/user-data-context";
 import { DnaStrandIcon } from "@/components/icons/dna-strand";
 
 function DashboardSkeleton() {
@@ -32,20 +33,21 @@ function DashboardSkeleton() {
     );
 }
 
-function SidebarPatientCard() {
-  const { patient, loading } = usePatientData();
+function SidebarUserCard() {
+  const { user, loading } = useUserData();
   if (loading) {
-    return <PatientCardSkeleton />;
+    return <UserCardSkeleton />;
   }
-  if (!patient) {
-    return <div className="p-4 text-sm text-muted-foreground">Could not load patient data.</div>;
+  if (!user) {
+    return <div className="p-4 text-sm text-muted-foreground">Could not load user data.</div>;
   }
-  return <PatientCard patient={patient} />;
+  return <UserCard user={user} />;
 }
 
 function SidebarNav() {
-    const { patient } = usePatientData();
+    const { user } = useUserData();
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleLogout = async () => {
         if (!auth) return;
@@ -56,23 +58,39 @@ function SidebarNav() {
         });
         router.push('/login');
     };
+    
+    const navLinkClasses = "w-full justify-start gap-2";
+    const activeNavLinkClasses = "bg-accent/80 text-accent-foreground border border-accent/50";
 
     return (
         <div className="p-4 flex flex-col gap-2">
-            {patient?.role === 'doctor' && (
-                <Button asChild variant="ghost" className="w-full justify-start gap-2 bg-accent/20 text-accent-foreground border border-accent/50">
+            <Button asChild variant="ghost" className={`${navLinkClasses} ${pathname.startsWith('/dashboard/patient') ? activeNavLinkClasses : ''}`}>
+                <Link href="/dashboard/patient">
+                    <LayoutDashboard /> Patient View
+                </Link>
+            </Button>
+            {user?.role === 'doctor' && (
+                <Button asChild variant="ghost" className={`${navLinkClasses} ${pathname.startsWith('/dashboard/doctor') ? activeNavLinkClasses : ''}`}>
+                    <Link href="/dashboard/doctor">
+                        <User /> Doctor View
+                    </Link>
+                </Button>
+            )}
+            {user?.role === 'admin' && (
+                <Button asChild variant="ghost" className={`${navLinkClasses} ${pathname.startsWith('/dashboard/admin') ? activeNavLinkClasses : ''}`}>
                     <Link href="/dashboard/admin">
                         <Shield /> Admin Panel
                     </Link>
                 </Button>
             )}
-            <Button asChild variant="ghost" className="w-full justify-start gap-2">
-            <Link href="/dashboard/settings">
-                <Settings/> Settings
-            </Link>
+            <hr className="my-2 border-border" />
+            <Button asChild variant="ghost" className={`${navLinkClasses} ${pathname.startsWith('/dashboard/settings') ? activeNavLinkClasses : ''}`}>
+              <Link href="/dashboard/settings">
+                  <Settings/> Settings
+              </Link>
             </Button>
-            <Button variant="ghost" className="justify-start gap-2"><Bell/> Notifications</Button>
-            <Button variant="ghost" onClick={handleLogout} className="w-full justify-start gap-2"><LogOut/> Log Out</Button>
+            <Button variant="ghost" className={navLinkClasses}><Bell/> Notifications</Button>
+            <Button variant="ghost" onClick={handleLogout} className={navLinkClasses}><LogOut/> Log Out</Button>
         </div>
     )
 }
@@ -96,50 +114,25 @@ export default function DashboardLayout({
   }
 
   return (
-    <PatientDataProvider userId={user.uid}>
+    <UserDataProvider userId={user.uid}>
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center justify-between">
               <Link href="/dashboard" className="flex items-center gap-2">
-                  <svg
-                      className="w-8 h-8 text-primary"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      >
-                      <path
-                          d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                      ></path>
-                      <path
-                          d="M12 2C12 2 12 8 12 12C12 16 12 22 12 22"
-                          stroke="currentColor"
-                          strokeOpacity="0.5"
-                          strokeWidth="2"
-                      ></path>
-                      <path
-                          d="M2 12H22"
-                          stroke="currentColor"
-                          strokeOpacity="0.5"
-                          strokeWidth="2"
-                      ></path>
-                  </svg>
+                  <DnaStrandIcon className="h-8 w-8 text-primary" />
                   <h2 className="font-headline text-2xl font-bold text-primary">BioScan</h2>
               </Link>
               <SidebarTrigger />
             </div>
           </SidebarHeader>
           <SidebarContent>
-            <SidebarPatientCard />
+            <SidebarUserCard />
           </SidebarContent>
           <SidebarNav />
         </Sidebar>
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>
-    </PatientDataProvider>
+    </UserDataProvider>
   );
 }

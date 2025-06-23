@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -77,7 +78,7 @@ export default function SignupPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      // The onAuthStateChanged listener in auth-context will handle profile creation
+      // The onAuthStateChanged listener in user-data-context will handle profile creation
       toast({ title: 'Login Successful', description: 'Welcome to BioScan!' });
       router.push('/dashboard');
     } catch (error) {

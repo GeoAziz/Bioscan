@@ -1,7 +1,8 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeartPulse, Thermometer, Droplets, Gauge } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { usePatientData } from "@/context/patient-data-context";
+import { useUserData } from "@/context/user-data-context";
 import { Skeleton } from "../ui/skeleton";
 
 interface VitalCardProps {
@@ -47,13 +48,13 @@ function VitalsSummarySkeleton() {
 }
 
 export default function VitalsSummary() {
-  const { patient, loading } = usePatientData();
+  const { user, loading } = useUserData();
   
   if (loading) {
     return <VitalsSummarySkeleton />;
   }
   
-  const latestVitals = patient?.vitals[patient.vitals.length - 1];
+  const latestVitals = user?.vitals && user.vitals.length > 0 ? user.vitals[user.vitals.length - 1] : null;
 
   if (!latestVitals) {
     return <VitalsSummarySkeleton />;

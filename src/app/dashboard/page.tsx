@@ -1,32 +1,44 @@
+
 'use client';
 
-import VitalsSummary from '@/components/dashboard/vitals-summary';
-import HolographicBodyView from '@/components/dashboard/holographic-body-view';
-import AlertsPanel from '@/components/dashboard/alerts-panel';
-import VitalsTimeline from '@/components/dashboard/vitals-timeline';
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUserData } from '@/context/user-data-context';
+import { DnaStrandIcon } from '@/components/icons/dna-strand';
 
-export default function DashboardPage() {
-  const [activePart, setActivePart] = useState<string | null>(null);
+export default function DashboardRedirector() {
+  const { user, loading } = useUserData();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    // Redirect based on role
+    switch (user.role) {
+      case 'admin':
+        router.replace('/dashboard/admin');
+        break;
+      case 'doctor':
+        router.replace('/dashboard/doctor');
+        break;
+      case 'patient':
+      default:
+        router.replace('/dashboard/patient');
+        break;
+    }
+  }, [user, loading, router]);
 
   return (
-    <div className="flex h-full min-h-screen flex-col gap-4 p-4 lg:p-6">
-      <header>
-        <VitalsSummary />
-      </header>
-
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 min-h-[400px] lg:min-h-0">
-          <HolographicBodyView activePart={activePart} setActivePart={setActivePart} />
+    <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <DnaStrandIcon className="h-24 w-24 animate-dna-spin text-primary" />
+          <p className="text-muted-foreground">Redirecting to your dashboard...</p>
         </div>
-        <div className="min-h-[300px] lg:min-h-0">
-          <AlertsPanel />
-        </div>
-      </main>
-
-      <footer>
-        <VitalsTimeline activePart={activePart} />
-      </footer>
-    </div>
+      </div>
   );
 }

@@ -1,9 +1,10 @@
+
 'use server'
 import { triageEmergency, TriageEmergencyInput, TriageEmergencyOutput } from '@/ai/flows/triage-emergency'
 import { summarizeTimeline, SummarizeTimelineInput, SummarizeTimelineOutput } from '@/ai/flows/summarize-timeline';
 import { generateRecommendation, GenerateRecommendationInput, GenerateRecommendationOutput } from '@/ai/flows/generate-recommendation-from-vitals';
-import { updatePatientProfile, getPatientsForDoctor, initializePatientData } from '@/services/patient-service';
-import type { Patient } from '@/lib/types';
+import { updateUserProfile, getPatientsForDoctor, initializeUserData, getAllUsers } from '@/services/user-service';
+import type { User } from '@/lib/types';
 import { mockPatient } from '@/lib/mock-data';
 
 export async function handleEmergencyTriage(patientVitals: TriageEmergencyInput): Promise<TriageEmergencyOutput | { error: string }> {
@@ -38,13 +39,13 @@ export async function handleGenerateRecommendation(input: GenerateRecommendation
 
 export async function handleUpdateProfile(
   userId: string, 
-  data: Partial<Patient>
+  data: Partial<User>
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!userId) {
         throw new Error("User not authenticated.");
     }
-    await updatePatientProfile(userId, data);
+    await updateUserProfile(userId, data);
     return { success: true };
   } catch (error) {
     console.error('Error updating profile:', error);
@@ -53,13 +54,23 @@ export async function handleUpdateProfile(
   }
 }
 
-export async function handleGetPatientsForDoctor(doctorId: string): Promise<{ patients: (Patient & { id: string })[] } | { error: string }> {
+export async function handleGetPatientsForDoctor(doctorId: string): Promise<{ patients: (User & { id: string })[] } | { error: string }> {
     try {
         const patients = await getPatientsForDoctor(doctorId);
         return { patients };
     } catch (error) {
         console.error('Error fetching patients for doctor:', error);
         return { error: 'Failed to fetch patient list.' };
+    }
+}
+
+export async function handleGetAllUsers(): Promise<{ users: (User & { id: string })[] } | { error: string }> {
+    try {
+        const users = await getAllUsers();
+        return { users };
+    } catch (error) {
+        console.error('Error fetching all users:', error);
+        return { error: 'Failed to fetch user list. You may not have admin permissions.' };
     }
 }
 
@@ -73,14 +84,14 @@ export async function handleCreateUserProfile(userData: {
     if (!userData.uid) {
       throw new Error("User ID is missing.");
     }
-    const newPatientData: Patient = {
+    const newUser: User = {
       ...mockPatient,
       name: userData.name,
       email: userData.email || '',
       avatarUrl: userData.avatarUrl || mockPatient.avatarUrl,
       role: 'patient',
     };
-    await initializePatientData(userData.uid, newPatientData);
+    await initializeUserData(userData.uid, newUser);
     return { success: true };
   } catch (error) {
     console.error('Error creating user profile:', error);

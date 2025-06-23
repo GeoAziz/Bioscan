@@ -1,4 +1,5 @@
-import type { Patient, Vital } from './types';
+
+import type { User, Vital } from './types';
 
 const generateVitals = (): Vital[] => {
   const vitals: Vital[] = [];
@@ -19,10 +20,7 @@ const generateVitals = (): Vital[] => {
   return vitals;
 };
 
-export const mockPatient: Omit<Patient, 'role'> = {
-  name: 'Alex Ryder',
-  email: 'alex.ryder@example.com',
-  avatarUrl: 'https://placehold.co/100x100.png',
+export const mockPatient: Omit<User, 'role' | 'email' | 'name' | 'avatarUrl'> = {
   devices: [
     {
       id: 'sw01',

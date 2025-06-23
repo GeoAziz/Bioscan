@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
-import { usePatientData } from '@/context/patient-data-context';
+import { useUserData } from '@/context/user-data-context';
 import { handleUpdateProfile } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,8 +40,8 @@ const settingsFormSchema = z.object({
 type SettingsFormValues = z.infer<typeof settingsFormSchema>;
 
 export default function SettingsPage() {
-  const { user, loading: authLoading } = useAuth();
-  const { patient, loading: patientLoading } = usePatientData();
+  const { user: authUser, loading: authLoading } = useAuth();
+  const { user, loading: userLoading } = useUserData();
   const { toast } = useToast();
 
   const form = useForm<SettingsFormValues>({
@@ -55,26 +56,26 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (patient) {
+    if (user) {
       form.reset({
-        name: patient.name,
+        name: user.name,
         notificationPreferences: {
-          highPriorityAlerts: patient.notificationPreferences?.highPriorityAlerts ?? false,
-          newRecommendations: patient.notificationPreferences?.newRecommendations ?? false,
+          highPriorityAlerts: user.notificationPreferences?.highPriorityAlerts ?? false,
+          newRecommendations: user.notificationPreferences?.newRecommendations ?? false,
         },
       });
     }
-  }, [patient, form]);
+  }, [user, form]);
 
   async function onSubmit(data: SettingsFormValues) {
-    if (!user) {
+    if (!authUser) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to save settings.' });
       return;
     }
 
     toast({ title: 'Saving...', description: 'Your settings are being updated.' });
     
-    const result = await handleUpdateProfile(user.uid, data);
+    const result = await handleUpdateProfile(authUser.uid, data);
 
     if (result.success) {
       toast({ title: 'Success!', description: 'Your settings have been saved.' });
@@ -83,7 +84,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (authLoading || patientLoading) {
+  if (authLoading || userLoading) {
     return (
       <div className="p-4 lg:p-6 space-y-6">
           <Skeleton className="h-8 w-48 mb-4" />
@@ -132,8 +133,8 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={user?.photoURL || undefined} />
-                  <AvatarFallback>{patient?.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={authUser?.photoURL || undefined} />
+                  <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <FormField
                   control={form.control}
@@ -153,78 +154,82 @@ export default function SettingsPage() {
                 <Label>Email Address</Label>
                 <div className="flex items-center gap-2 text-muted-foreground p-2 border rounded-md bg-muted/30 h-10 px-3">
                     <Mail className="w-4 h-4"/>
-                    <span>{user?.email}</span>
+                    <span>{authUser?.email}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Bell /> Notifications</CardTitle>
-              <CardDescription>Choose how you want to be notified.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="notificationPreferences.highPriorityAlerts"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">High Priority Alerts</FormLabel>
-                      <FormDescription>
-                        Receive notifications for high priority triage events.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="notificationPreferences.newRecommendations"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">New Health Tips</FormLabel>
-                      <FormDescription>
-                        Get notified when a new AI health tip is available.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+          {user?.role === 'patient' && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Bell /> Notifications</CardTitle>
+                  <CardDescription>Choose how you want to be notified.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="notificationPreferences.highPriorityAlerts"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">High Priority Alerts</FormLabel>
+                          <FormDescription>
+                            Receive notifications for high priority triage events.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="notificationPreferences.newRecommendations"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">New Health Tips</FormLabel>
+                          <FormDescription>
+                            Get notified when a new AI health tip is available.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Cpu /> Connected Devices</CardTitle>
-              <CardDescription>Manage your connected biometric devices.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {patient?.devices.map((device) => {
-                const Icon = deviceIcons[device.id] || Smartphone;
-                return (
-                  <div key={device.id} className="flex items-center justify-between text-sm p-3 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-6 w-6 text-accent" />
-                      <div className="font-medium">{device.name}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="border-green-400/50 text-green-400">{device.battery}% Battery</Badge>
-                      <Button variant="ghost" size="sm" disabled>Manage</Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Cpu /> Connected Devices</CardTitle>
+                  <CardDescription>Manage your connected biometric devices.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {user?.devices?.map((device) => {
+                    const Icon = deviceIcons[device.id] || Smartphone;
+                    return (
+                      <div key={device.id} className="flex items-center justify-between text-sm p-3 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <Icon className="h-6 w-6 text-accent" />
+                          <div className="font-medium">{device.name}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="border-green-400/50 text-green-400">{device.battery}% Battery</Badge>
+                          <Button variant="ghost" size="sm" disabled>Manage</Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           <div className="flex justify-end">
             <Button type="submit" disabled={form.formState.isSubmitting}>

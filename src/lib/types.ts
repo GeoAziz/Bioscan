@@ -1,3 +1,4 @@
+
 export interface Vital {
   time: string;
   heartRate: number;
@@ -22,14 +23,15 @@ export interface NotificationPreferences {
   newRecommendations: boolean;
 }
 
-export interface Patient {
+export interface User {
   name: string;
   email: string;
   avatarUrl: string;
-  devices: Device[];
-  vitals: Vital[];
+  role: 'patient' | 'doctor' | 'admin';
+  // Patient-specific fields
+  devices?: Device[];
+  vitals?: Vital[];
   notificationPreferences?: NotificationPreferences;
-  role: 'patient' | 'doctor';
   doctorId?: string;
 }
 

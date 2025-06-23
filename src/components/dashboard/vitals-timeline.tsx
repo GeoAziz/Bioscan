@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { Sparkles, Calendar as CalendarIcon } from 'lucide-react';
 import { handleSummarizeTimeline } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { usePatientData } from '@/context/patient-data-context';
+import { useUserData } from '@/context/user-data-context';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -72,21 +73,21 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
     to: new Date(),
   });
   const { toast } = useToast();
-  const { patient, loading: patientLoading } = usePatientData();
+  const { user, loading: userLoading } = useUserData();
 
   const filteredVitals = useMemo(() => {
-    if (!patient?.vitals) return [];
-    if (!date?.from || !date?.to) return patient.vitals;
+    if (!user?.vitals) return [];
+    if (!date?.from || !date?.to) return user.vitals;
     
     // Set to start of the day for 'from' and end of the day for 'to' to include all vitals on those days
     const fromDate = new Date(date.from.setHours(0, 0, 0, 0));
     const toDate = new Date(date.to.setHours(23, 59, 59, 999));
 
-    return patient.vitals.filter(v => {
+    return user.vitals.filter(v => {
         const vitalTime = new Date(v.time);
         return vitalTime >= fromDate && vitalTime <= toDate;
     });
-  }, [patient?.vitals, date]);
+  }, [user?.vitals, date]);
 
 
   const onSummarize = async () => {
@@ -156,7 +157,7 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
 
   const activeDataPoint = activeIndex !== null && chartData[activeIndex] ? chartData[activeIndex] : null;
 
-  if (patientLoading) {
+  if (userLoading) {
       return <TimelineSkeleton />;
   }
 
@@ -219,7 +220,7 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
                   variant="outline"
                   size="sm"
                   onClick={onSummarize}
-                  disabled={isSummarizing || !patient || chartData.length === 0}
+                  disabled={isSummarizing || !user || chartData.length === 0}
                   className="shrink-0"
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
