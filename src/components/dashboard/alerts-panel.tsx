@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Siren, Sparkles, Lightbulb } from 'lucide-react';
@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AlertsPanel() {
   const [isTriageLoading, setIsTriageLoading] = useState(false);
-  const [isRecommendationLoading, setIsRecommendationLoading] = useState(false);
+  const [isRecommendationLoading, setIsRecommendationLoading] = useState(true);
   const [triageResult, setTriageResult] = useState<TriageResult>(null);
   const [recommendationResult, setRecommendationResult] = useState<RecommendationResult>(null);
   const { toast } = useToast();
@@ -20,6 +20,7 @@ export default function AlertsPanel() {
   const onTriage = async () => {
     setIsTriageLoading(true);
     setTriageResult(null);
+    setRecommendationResult(null);
 
     const latestVitals = mockPatient.vitals[mockPatient.vitals.length - 1];
     const patientVitals = JSON.stringify(latestVitals);
@@ -42,6 +43,7 @@ export default function AlertsPanel() {
   const onGetRecommendation = async () => {
     setIsRecommendationLoading(true);
     setRecommendationResult(null);
+    setTriageResult(null);
 
     const latestVitals = mockPatient.vitals[mockPatient.vitals.length - 1];
     const input = {
@@ -67,6 +69,11 @@ export default function AlertsPanel() {
     
     setIsRecommendationLoading(false);
   };
+
+  useEffect(() => {
+    onGetRecommendation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getPriorityBadgeColor = (priority: 'High' | 'Medium' | 'Low' | 'low' | 'medium' | 'high' | undefined) => {
     switch(priority?.toLowerCase()) {
@@ -120,7 +127,7 @@ export default function AlertsPanel() {
         
         {!triageResult && !recommendationResult && !isTriageLoading && !isRecommendationLoading && (
             <div className="p-4 bg-muted/30 rounded-lg text-sm text-muted-foreground text-center">
-                Click a button below to get AI analysis.
+                Run AI analysis for more insights.
             </div>
         )}
       </CardContent>
