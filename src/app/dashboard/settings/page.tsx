@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Smartphone, Watch, Cpu, Bell, User, Mail } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 
 const deviceIcons: Record<string, LucideIcon> = {
     sw01: Watch,
