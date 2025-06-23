@@ -6,11 +6,16 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ReferenceDot } from 'recharts';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Calendar as CalendarIcon } from 'lucide-react';
 import { handleSummarizeTimeline } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePatientData } from '@/context/patient-data-context';
+import { DateRange } from 'react-day-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format, subDays } from 'date-fns';
 
 type VitalKey = 'heartRate' | 'temperature' | 'oxygenSaturation';
 
@@ -62,17 +67,43 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 6),
+    to: new Date(),
+  });
   const { toast } = useToast();
   const { patient, loading: patientLoading } = usePatientData();
 
+  const filteredVitals = useMemo(() => {
+    if (!patient?.vitals) return [];
+    if (!date?.from || !date?.to) return patient.vitals;
+    
+    // Set to start of the day for 'from' and end of the day for 'to' to include all vitals on those days
+    const fromDate = new Date(date.from.setHours(0, 0, 0, 0));
+    const toDate = new Date(date.to.setHours(23, 59, 59, 999));
+
+    return patient.vitals.filter(v => {
+        const vitalTime = new Date(v.time);
+        return vitalTime >= fromDate && vitalTime <= toDate;
+    });
+  }, [patient?.vitals, date]);
+
+
   const onSummarize = async () => {
-    if (!patient) return;
+    if (!filteredVitals || filteredVitals.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Summary Error',
+        description: 'No data available for the selected range.',
+      });
+      return;
+    }
     setIsSummarizing(true);
     setSummary(null);
 
-    const vitalsData = JSON.stringify(patient.vitals);
-    const startTime = patient.vitals[0].time;
-    const endTime = patient.vitals[patient.vitals.length - 1].time;
+    const vitalsData = JSON.stringify(filteredVitals);
+    const startTime = filteredVitals[0].time;
+    const endTime = filteredVitals[filteredVitals.length - 1].time;
 
     const result = await handleSummarizeTimeline({ vitalsData, startTime, endTime });
 
@@ -97,18 +128,19 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
   }, [activePart, selectedVital]);
   
   const chartData = useMemo(() => {
-    if (!patient) return [];
-    return patient.vitals.map(v => ({
-      time: new Date(v.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    return filteredVitals.map(v => ({
+      time: new Date(v.time).toLocaleTimeString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
       heartRate: v.heartRate,
       temperature: v.temperature,
       oxygenSaturation: v.oxygenSaturation,
     }));
-  }, [patient]);
+  }, [filteredVitals]);
 
   useEffect(() => {
     if (chartData.length > 0) {
         setActiveIndex(chartData.length - 1);
+    } else {
+        setActiveIndex(null);
     }
   }, [chartData]);
 
@@ -122,7 +154,7 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
     }
   }, [currentVital]);
 
-  const activeDataPoint = activeIndex !== null ? chartData[activeIndex] : null;
+  const activeDataPoint = activeIndex !== null && chartData[activeIndex] ? chartData[activeIndex] : null;
 
   if (patientLoading) {
       return <TimelineSkeleton />;
@@ -131,27 +163,63 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
   return (
     <Card className="bg-card/50 border-primary/20">
       <CardHeader>
-        <div className="flex justify-between items-start gap-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
             <div>
                 <CardTitle className="font-headline">Vitals Timeline</CardTitle>
                 <CardDescription>
-                    {chartConfig[currentVital].label} over the last 24 hours.
-                    Current: <span className="text-primary font-bold">{activeDataPoint ? activeDataPoint[currentVital] : ''}</span>
+                    {chartConfig[currentVital].label} trend.
+                    Current: <span className="text-primary font-bold">{activeDataPoint ? activeDataPoint[currentVital] : 'N/A'}</span>
                 </CardDescription>
             </div>
-            <div className='flex items-center gap-2'>
-              <Tabs value={currentVital} onValueChange={(v) => setSelectedVital(v as VitalKey)} className="hidden md:block">
+            <div className='flex items-center gap-2 flex-wrap'>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date"
+                    variant={"outline"}
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "LLL dd, y")} -{" "}
+                          {format(date.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(date.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={setDate}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Tabs value={currentVital} onValueChange={(v) => setSelectedVital(v as VitalKey)}>
                   <TabsList>
-                      <TabsTrigger value="heartRate">Heart Rate</TabsTrigger>
-                      <TabsTrigger value="temperature">Temperature</TabsTrigger>
-                      <TabsTrigger value="oxygenSaturation">Oxygen</TabsTrigger>
+                      <TabsTrigger value="heartRate">Heart</TabsTrigger>
+                      <TabsTrigger value="temperature">Temp</TabsTrigger>
+                      <TabsTrigger value="oxygenSaturation">O2</TabsTrigger>
                   </TabsList>
               </Tabs>
               <Button
                   variant="outline"
                   size="sm"
                   onClick={onSummarize}
-                  disabled={isSummarizing || !patient}
+                  disabled={isSummarizing || !patient || chartData.length === 0}
                   className="shrink-0"
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
@@ -161,47 +229,54 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
         </div>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[250px] w-full">
-          <AreaChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 0 }}
-             onMouseMove={(state) => {
-                if (state.isTooltipActive && state.activeTooltipIndex !== undefined) {
-                  setActiveIndex(state.activeTooltipIndex);
-                }
-              }}
-              onMouseLeave={() => {
-                if(chartData.length > 0) setActiveIndex(chartData.length - 1);
-              }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-            <XAxis dataKey="time" tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis domain={yAxisDomain} tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} tickLine={false} axisLine={false} />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
-            <defs>
-              <linearGradient id={currentVital} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={chartConfig[currentVital].color} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={chartConfig[currentVital].color} stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <Area
-              type="monotone"
-              dataKey={currentVital}
-              stroke={chartConfig[currentVital].color}
-              fillOpacity={1}
-              fill={`url(#${currentVital})`}
-              strokeWidth={2}
-            />
-             {activeDataPoint && (
-              <ReferenceDot
-                r={5}
-                y={activeDataPoint[currentVital]}
-                x={activeDataPoint.time}
-                fill={chartConfig[currentVital].color}
-                stroke="hsl(var(--background))"
+        {chartData.length > 0 ? (
+          <ChartContainer config={chartConfig} className="h-[250px] w-full">
+            <AreaChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 0 }}
+              onMouseMove={(state) => {
+                  if (state.isTooltipActive && state.activeTooltipIndex !== undefined) {
+                    setActiveIndex(state.activeTooltipIndex);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if(chartData.length > 0) setActiveIndex(chartData.length - 1);
+                }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
+              <XAxis dataKey="time" tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis domain={yAxisDomain} tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} tickLine={false} axisLine={false} />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
+              <defs>
+                <linearGradient id={currentVital} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartConfig[currentVital].color} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={chartConfig[currentVital].color} stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey={currentVital}
+                stroke={chartConfig[currentVital].color}
+                fillOpacity={1}
+                fill={`url(#${currentVital})`}
                 strokeWidth={2}
               />
-            )}
-          </AreaChart>
-        </ChartContainer>
+              {activeDataPoint && activeDataPoint[currentVital] !== undefined && (
+                <ReferenceDot
+                  r={5}
+                  y={activeDataPoint[currentVital]}
+                  x={activeDataPoint.time}
+                  fill={chartConfig[currentVital].color}
+                  stroke="hsl(var(--background))"
+                  strokeWidth={2}
+                />
+              )}
+            </AreaChart>
+          </ChartContainer>
+        ) : (
+          <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+            No data available for the selected date range.
+          </div>
+        )}
+        
         {isSummarizing && (
             <div className="mt-4 space-y-2">
                 <Skeleton className="h-4 w-1/4" />

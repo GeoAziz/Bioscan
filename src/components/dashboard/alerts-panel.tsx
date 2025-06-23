@@ -18,6 +18,18 @@ export default function AlertsPanel() {
   const { toast } = useToast();
   const { patient, loading: patientLoading } = usePatientData();
 
+  // Effect to show a notification for high-priority triage results
+  useEffect(() => {
+    if (triageResult && !triageResult.error && triageResult.priority === 'High') {
+      toast({
+        variant: 'destructive',
+        title: `🚨 High Priority Alert: ${triageResult.priority} 🚨`,
+        description: `${triageResult.recommendation}. ${triageResult.explanation}`,
+        duration: 8000,
+      });
+    }
+  }, [triageResult, toast]);
+
   const getLatestVitals = () => {
     if (!patient || patient.vitals.length === 0) return null;
     return patient.vitals[patient.vitals.length - 1];
