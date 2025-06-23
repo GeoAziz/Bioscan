@@ -6,6 +6,11 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '
 import { mockPatient } from '@/lib/mock-data';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ReferenceDot } from 'recharts';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
+import { handleSummarizeTimeline } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type VitalKey = 'heartRate' | 'temperature' | 'oxygenSaturation';
 
@@ -33,6 +38,32 @@ const partToVitalMap: Record<string, VitalKey> = {
 export default function VitalsTimeline({ activePart }: { activePart: string | null }) {
   const [selectedVital, setSelectedVital] = useState<VitalKey>('heartRate');
   const [activeIndex, setActiveIndex] = useState(mockPatient.vitals.length - 1);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const onSummarize = async () => {
+    setIsSummarizing(true);
+    setSummary(null);
+
+    const vitalsData = JSON.stringify(mockPatient.vitals);
+    const startTime = mockPatient.vitals[0].time;
+    const endTime = mockPatient.vitals[mockPatient.vitals.length - 1].time;
+
+    const result = await handleSummarizeTimeline({ vitalsData, startTime, endTime });
+
+    if (result.error) {
+      toast({
+        variant: 'destructive',
+        title: 'Summary Error',
+        description: result.error,
+      });
+    } else {
+      setSummary(result.summary);
+    }
+    
+    setIsSummarizing(false);
+  };
 
   const currentVital = useMemo<VitalKey>(() => {
     if (activePart && partToVitalMap[activePart]) {
@@ -64,7 +95,7 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
   return (
     <Card className="bg-card/50 border-primary/20">
       <CardHeader>
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start gap-4">
             <div>
                 <CardTitle className="font-headline">Vitals Timeline</CardTitle>
                 <CardDescription>
@@ -72,13 +103,25 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
                     Current: <span className="text-primary font-bold">{activeDataPoint ? activeDataPoint[currentVital] : ''}</span>
                 </CardDescription>
             </div>
-            <Tabs value={currentVital} onValueChange={(v) => setSelectedVital(v as VitalKey)} className="hidden md:block">
-                <TabsList>
-                    <TabsTrigger value="heartRate">Heart Rate</TabsTrigger>
-                    <TabsTrigger value="temperature">Temperature</TabsTrigger>
-                    <TabsTrigger value="oxygenSaturation">Oxygen</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            <div className='flex items-center gap-2'>
+              <Tabs value={currentVital} onValueChange={(v) => setSelectedVital(v as VitalKey)} className="hidden md:block">
+                  <TabsList>
+                      <TabsTrigger value="heartRate">Heart Rate</TabsTrigger>
+                      <TabsTrigger value="temperature">Temperature</TabsTrigger>
+                      <TabsTrigger value="oxygenSaturation">Oxygen</TabsTrigger>
+                  </TabsList>
+              </Tabs>
+              <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onSummarize}
+                  disabled={isSummarizing}
+                  className="shrink-0"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {isSummarizing ? 'Summarizing...' : 'Summarize'}
+                </Button>
+            </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -120,6 +163,20 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
             )}
           </AreaChart>
         </ChartContainer>
+        {isSummarizing && (
+            <div className="mt-4 space-y-2">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+            </div>
+        )}
+
+        {summary && (
+            <div className="mt-4 rounded-lg border border-accent/30 bg-accent/10 p-4">
+                <h4 className="font-semibold text-md text-primary flex items-center gap-2 mb-2"><Sparkles className="w-5 h-5"/> AI Summary</h4>
+                <p className="text-sm text-muted-foreground">{summary}</p>
+            </div>
+        )}
       </CardContent>
     </Card>
   );
