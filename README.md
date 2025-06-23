@@ -20,8 +20,9 @@ BioScan is a Next.js application that provides a real-time, holographic dashboar
 - [React](https://react.dev/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [ShadCN UI](https://ui.shadcn.com/)
-- [Firebase](https://firebase.google.com/) (Authentication, Firestore, App Hosting)
+- [Firebase](https://firebase.google.com/) (Authentication, Firestore)
 - [Genkit](https://firebase.google.com/docs/genkit) for AI functionality
+- [Vercel](https://vercel.com/) for Hosting
 
 ## Getting Started
 
@@ -30,6 +31,7 @@ BioScan is a Next.js application that provides a real-time, holographic dashboar
 - Node.js (v18 or later)
 - A Google Cloud project with the Vertex AI API enabled.
 - A Firebase project.
+- A free Vercel account.
 
 ### Installation
 
@@ -54,10 +56,7 @@ BioScan is a Next.js application that provides a real-time, holographic dashboar
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
    NEXT_PUBLIC_FIREBASE_APP_ID=...
    ```
-   You will also need to authenticate with Google Cloud for Genkit to work. Run the following command and follow the instructions:
-   ```bash
-   gcloud auth application-default login
-   ```
+   You will also need a `google-application-credentials.json` file in the root of your project for the AI to work locally.
 
 ### Running the Development Server
 
@@ -67,50 +66,39 @@ npm run dev
 ```
 Open your development URL in your browser to see the result.
 
-## Build and Deployment to Firebase
+## Build and Deployment to Vercel
 
-This application is configured for deployment with **Firebase App Hosting**. Follow these steps in order to get your project live on the web.
+This application is ready for deployment on **Vercel's** free "Hobby" plan.
 
-### **Prerequisites**
+### **Step 1: Push to GitHub**
+Make sure your latest code is pushed to a GitHub repository.
 
-1.  **Install Firebase CLI:** If you haven't already, install the Firebase command-line tools globally:
-    ```bash
-    npm install -g firebase-tools
-    ```
-2.  **Login to Firebase:** Authenticate with your Google account.
-    ```bash
-    firebase login
-    ```
-3.  **Push to GitHub:** Your latest code must be pushed to a GitHub repository.
-
-### **Step 1: Deploy Database Rules (One-Time Setup)**
-
-Your `firestore.rules` file contains the security rules for your database. You only need to deploy this once. Run this command from your project root:
+### **Step 2: Deploy Firestore Rules (One-Time Setup)**
+Your `firestore.rules` file contains the security rules for your database. You only need to deploy this once. Make sure you have the Firebase CLI installed (`npm install -g firebase-tools`) and are logged in (`firebase login`), then run:
 ```bash
 firebase deploy --only firestore:rules
 ```
 
-### **Step 2: Connect Firebase to GitHub**
+### **Step 3: Import Project to Vercel**
 
-This step links your code to the hosting service and creates the necessary service account for the next step.
+1.  Go to your Vercel dashboard.
+2.  Click **"Add New..." > "Project"**.
+3.  Find and **"Import"** your project's GitHub repository.
 
-1.  Go to the **Firebase Console** and select your `bioscan-3d0hd` project.
-2.  Navigate to **Build > App Hosting**.
-3.  Click **Create backend** and follow the guided flow to connect your GitHub repository.
-4.  Once connected, Firebase will start building your first deployment. This may take a few minutes.
+### **Step 4: Configure Environment Variables**
+Vercel will auto-detect that this is a Next.js project. You just need to provide your secret keys.
 
-### **Step 3: Grant AI Permissions for the Deployed App (One-Time Setup)**
+1.  In the configuration screen, expand the **"Environment Variables"** section.
+2.  Add the following variables, copying the values from your local `.env` file:
+    - `NEXT_PUBLIC_FIREBASE_API_KEY`
+    - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+    - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+    - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+    - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+    - `NEXT_PUBLIC_FIREBASE_APP_ID`
+3.  Add one more crucial variable for the AI to work on the server:
+    - **Name:** `GOOGLE_APPLICATION_CREDENTIALS`
+    - **Value:** Open your `google-application-credentials.json` file, copy the *entire content*, and paste it into the "Value" field on Vercel.
 
-The deployed application runs as a special "user" called a service account, which needs permission to use the AI features.
-
-1.  Go to the [Google Cloud IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project. Make sure `bioscan-3d0hd` is selected as the project at the top of the page.
-2.  Find the service account used by App Hosting. It will be named `firebase-app-hosting-backend@[your-project-id].iam.gserviceaccount.com`. **(Note: This may take a few minutes to appear after you complete Step 2).**
-3.  Click the **pencil icon** (Edit principal) for that account.
-4.  Click **+ Add Another Role** and select the **Vertex AI User** role.
-5.  Click **Save**.
-
-### **Step 4: Automatic Deployments**
-
-That's it! Your app is now live at the URL provided by Firebase App Hosting.
-
-From now on, every time you push a new commit to your main branch on GitHub, Firebase will automatically build and deploy the update for you.
+### **Step 5: Deploy!**
+Click the **"Deploy"** button. Vercel will build your project and provide you with a live URL. From now on, every time you `git push` to your main branch, Vercel will automatically deploy the update for you.
