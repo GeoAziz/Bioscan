@@ -53,6 +53,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     toast({
       title: 'Logged Out',
@@ -113,7 +114,11 @@ export default function DashboardLayout({
             <SidebarPatientCard />
           </SidebarContent>
           <div className="p-4 flex flex-col gap-2">
-              <Button variant="ghost" className="justify-start gap-2"><Settings/> Settings</Button>
+              <Button asChild variant="ghost" className="w-full justify-start gap-2">
+                <Link href="/dashboard/settings">
+                  <Settings/> Settings
+                </Link>
+              </Button>
               <Button variant="ghost" className="justify-start gap-2"><Bell/> Notifications</Button>
               <Button variant="ghost" onClick={handleLogout} className="w-full justify-start gap-2"><LogOut/> Log Out</Button>
           </div>

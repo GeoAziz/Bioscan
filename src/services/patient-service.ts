@@ -1,8 +1,14 @@
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, writeBatch, collection } from 'firebase/firestore';
-import type { Patient } from '@/lib/types';
+import { doc, getDoc, setDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import type { Patient, NotificationPreferences } from '@/lib/types';
+
+const defaultNotificationPreferences: NotificationPreferences = {
+  highPriorityAlerts: true,
+  newRecommendations: false,
+};
 
 export async function getPatient(userId: string): Promise<Patient | null> {
+  if (!db) return null;
   const userDocRef = doc(db, 'users', userId);
   const userDocSnap = await getDoc(userDocRef);
 
@@ -10,30 +16,34 @@ export async function getPatient(userId: string): Promise<Patient | null> {
     return null;
   }
 
-  const userData = userDocSnap.data() as Omit<Patient, 'vitals' | 'devices'>;
+  const userData = userDocSnap.data();
 
-  // For simplicity, we'll store vitals and devices in the same document.
-  // In a real-world scenario with many vitals, a subcollection would be better.
   return {
     name: userData.name,
     avatarUrl: userData.avatarUrl,
-    devices: (userData as any).devices || [],
-    vitals: (userData as any).vitals || [],
-  };
+    devices: userData.devices || [],
+    vitals: userData.vitals || [],
+    notificationPreferences: userData.notificationPreferences || defaultNotificationPreferences,
+  } as Patient;
 }
 
 export async function initializePatientData(userId: string, patientData: Patient): Promise<void> {
+  if (!db) return;
   const userDocRef = doc(db, 'users', userId);
   const batch = writeBatch(db);
 
   const userData = {
-    name: patientData.name,
-    avatarUrl: patientData.avatarUrl,
-    devices: patientData.devices,
-    vitals: patientData.vitals,
+    ...patientData,
+    notificationPreferences: patientData.notificationPreferences || defaultNotificationPreferences
   };
 
   batch.set(userDocRef, userData);
 
   await batch.commit();
+}
+
+export async function updatePatientProfile(userId: string, data: Partial<Patient>): Promise<void> {
+  if (!db) return;
+  const userDocRef = doc(db, 'users', userId);
+  await updateDoc(userDocRef, data);
 }

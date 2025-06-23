@@ -46,4 +46,8 @@ export const mockPatient: Patient = {
     },
   ],
   vitals: generateVitals(),
+  notificationPreferences: {
+    highPriorityAlerts: true,
+    newRecommendations: false,
+  },
 };

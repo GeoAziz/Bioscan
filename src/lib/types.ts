@@ -17,11 +17,17 @@ export interface Device {
   lastSync: string;
 }
 
+export interface NotificationPreferences {
+  highPriorityAlerts: boolean;
+  newRecommendations: boolean;
+}
+
 export interface Patient {
   name: string;
   avatarUrl: string;
   devices: Device[];
   vitals: Vital[];
+  notificationPreferences?: NotificationPreferences;
 }
 
 export interface Alert {

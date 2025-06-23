@@ -21,6 +21,15 @@ export default function LoginPage() {
   }, [user, router]);
 
   const handleLogin = async () => {
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'Firebase is not configured. Please add your credentials to the .env file.',
+      });
+      return;
+    }
+
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);

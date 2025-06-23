@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Patient } from '@/lib/types';
 import { getPatient, initializePatientData } from '@/services/patient-service';
 import { mockPatient } from '@/lib/mock-data';
+import { auth } from '@/lib/firebase';
 
 interface PatientDataContextType {
   patient: Patient | null;
@@ -24,7 +25,7 @@ export const PatientDataProvider = ({ userId, children }: { userId: string, chil
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !auth) return;
 
     const fetchData = async () => {
       setLoading(true);
@@ -61,5 +62,3 @@ export const PatientDataProvider = ({ userId, children }: { userId: string, chil
 };
 
 export const usePatientData = () => useContext(PatientDataContext);
-
-import { auth } from '@/lib/firebase';
