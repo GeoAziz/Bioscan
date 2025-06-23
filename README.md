@@ -69,13 +69,40 @@ Open [http://localhost:9002](http://localhost:9002) in your browser to see the r
 
 ## Build and Deployment
 
-This application is configured for deployment with **Firebase App Hosting**.
+This application is configured for deployment with **Firebase App Hosting**, which works by connecting directly to your GitHub repository.
 
-1. **Build the application for production:**
-   ```bash
-   npm run build
-   ```
-   This command will lint your code and check for TypeScript errors before creating an optimized production build.
+### Prerequisites
 
-2. **Deploy to Firebase:**
-   Follow the [Firebase App Hosting deployment guide](https://firebase.google.com/docs/app-hosting/deploy-nextjs) to connect your GitHub repository and set up automatic deployments. The `apphosting.yaml` file is already configured for this.
+1.  **Install Firebase CLI:** If you haven't already, install the Firebase command-line tools globally:
+    ```bash
+    npm install -g firebase-tools
+    ```
+2.  **Login to Firebase:** Authenticate with your Google account.
+    ```bash
+    firebase login
+    ```
+3.  **Push to GitHub:** Make sure your latest code is pushed to a GitHub repository.
+
+### One-Time Setup
+
+You need to perform these steps once to get your project ready for hosting.
+
+1.  **Deploy Firestore Rules:** Your database has security rules that need to be deployed. Run this command from your project root:
+    ```bash
+    firebase deploy --only firestore:rules
+    ```
+
+2.  **Grant AI Permissions for the Deployed App:**
+    *   Go to the [Google Cloud IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project.
+    *   Find the service account used by App Hosting. It will be named something like `firebase-app-hosting-backend@[your-project-id].iam.gserviceaccount.com`.
+    *   Click the pencil icon (Edit principal) for that account.
+    *   Click **+ Add Another Role** and select the **Vertex AI User** role.
+    *   Click **Save**. This allows your deployed application to use the Genkit AI features.
+
+### Connecting to Firebase App Hosting
+
+1.  **Go to the Firebase Console** and select your `bioscan-3d0hd` project.
+2.  Navigate to **Build > App Hosting**.
+3.  Click **Create backend** and follow the guided flow to connect your GitHub repository.
+4.  Firebase will automatically detect the `apphosting.yaml` file in your repository.
+5.  Once connected, every time you push a new commit to your main branch, Firebase will automatically build and deploy the update for you. Your app will be live at the URL provided by Firebase!
