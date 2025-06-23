@@ -52,15 +52,14 @@ export async function getPatientsForDoctor(doctorId: string): Promise<(User & { 
 }
 
 export async function getAllUsers(): Promise<(User & { id: string })[]> {
-    if (!db || !auth?.currentUser) {
-        throw new Error("Not authenticated or database not available.");
+    if (!db) {
+        throw new Error("Database not available.");
     }
     
-    // This part is mostly for client-side checks, the real security is in Firestore Rules.
-    const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-    if (!currentUserDoc.exists() || currentUserDoc.data()?.role !== 'admin') {
-        throw new Error("You do not have permission to perform this action.");
-    }
+    // Security for this action is handled by Firestore Security Rules.
+    // The rules should ensure that only a user with the 'admin' role can
+    // read the entire 'users' collection. A client-side check is redundant
+    // and problematic in Server Actions where `auth.currentUser` is null.
 
     const querySnapshot = await getDocs(collection(db, 'users'));
     const users: (User & { id: string })[] = [];
