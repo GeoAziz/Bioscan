@@ -65,13 +65,13 @@ To run the app locally:
 ```bash
 npm run dev
 ```
-Open [http://localhost:9002](http://localhost:9002) in your browser to see the result.
+Open your development URL in your browser to see the result.
 
-## Build and Deployment
+## Build and Deployment to Firebase
 
-This application is configured for deployment with **Firebase App Hosting**, which works by connecting directly to your GitHub repository.
+This application is configured for deployment with **Firebase App Hosting**. Follow these steps in order to get your project live on the web.
 
-### Prerequisites
+### **Prerequisites**
 
 1.  **Install Firebase CLI:** If you haven't already, install the Firebase command-line tools globally:
     ```bash
@@ -81,28 +81,36 @@ This application is configured for deployment with **Firebase App Hosting**, whi
     ```bash
     firebase login
     ```
-3.  **Push to GitHub:** Make sure your latest code is pushed to a GitHub repository.
+3.  **Push to GitHub:** Your latest code must be pushed to a GitHub repository.
 
-### One-Time Setup
+### **Step 1: Deploy Database Rules (One-Time Setup)**
 
-You need to perform these steps once to get your project ready for hosting.
+Your `firestore.rules` file contains the security rules for your database. You only need to deploy this once. Run this command from your project root:
+```bash
+firebase deploy --only firestore:rules
+```
 
-1.  **Deploy Firestore Rules:** Your database has security rules that need to be deployed. Run this command from your project root:
-    ```bash
-    firebase deploy --only firestore:rules
-    ```
+### **Step 2: Connect Firebase to GitHub**
 
-2.  **Grant AI Permissions for the Deployed App:**
-    *   Go to the [Google Cloud IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project.
-    *   Find the service account used by App Hosting. It will be named something like `firebase-app-hosting-backend@[your-project-id].iam.gserviceaccount.com`.
-    *   Click the pencil icon (Edit principal) for that account.
-    *   Click **+ Add Another Role** and select the **Vertex AI User** role.
-    *   Click **Save**. This allows your deployed application to use the Genkit AI features.
+This step links your code to the hosting service and creates the necessary service account for the next step.
 
-### Connecting to Firebase App Hosting
-
-1.  **Go to the Firebase Console** and select your `bioscan-3d0hd` project.
+1.  Go to the **Firebase Console** and select your `bioscan-3d0hd` project.
 2.  Navigate to **Build > App Hosting**.
 3.  Click **Create backend** and follow the guided flow to connect your GitHub repository.
-4.  Firebase will automatically detect the `apphosting.yaml` file in your repository.
-5.  Once connected, every time you push a new commit to your main branch, Firebase will automatically build and deploy the update for you. Your app will be live at the URL provided by Firebase!
+4.  Once connected, Firebase will start building your first deployment. This may take a few minutes.
+
+### **Step 3: Grant AI Permissions for the Deployed App (One-Time Setup)**
+
+The deployed application runs as a special "user" called a service account, which needs permission to use the AI features.
+
+1.  Go to the [Google Cloud IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project. Make sure `bioscan-3d0hd` is selected as the project at the top of the page.
+2.  Find the service account used by App Hosting. It will be named `firebase-app-hosting-backend@[your-project-id].iam.gserviceaccount.com`. **(Note: This may take a few minutes to appear after you complete Step 2).**
+3.  Click the **pencil icon** (Edit principal) for that account.
+4.  Click **+ Add Another Role** and select the **Vertex AI User** role.
+5.  Click **Save**.
+
+### **Step 4: Automatic Deployments**
+
+That's it! Your app is now live at the URL provided by Firebase App Hosting.
+
+From now on, every time you push a new commit to your main branch on GitHub, Firebase will automatically build and deploy the update for you.
