@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
-import { mockPatient } from '@/lib/mock-data';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ReferenceDot } from 'recharts';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Sparkles } from 'lucide-react';
 import { handleSummarizeTimeline } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePatientData } from '@/context/patient-data-context';
 
 type VitalKey = 'heartRate' | 'temperature' | 'oxygenSaturation';
 
@@ -35,20 +35,44 @@ const partToVitalMap: Record<string, VitalKey> = {
   default: 'heartRate',
 };
 
+function TimelineSkeleton() {
+    return (
+        <Card className="bg-card/50 border-primary/20">
+            <CardHeader>
+                <div className="flex justify-between items-start gap-4">
+                    <div>
+                        <Skeleton className="h-7 w-48 mb-2" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                    <div className='flex items-center gap-2'>
+                        <Skeleton className="h-10 w-64 hidden md:block" />
+                        <Skeleton className="h-9 w-28" />
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-[250px] w-full" />
+            </CardContent>
+        </Card>
+    )
+}
+
 export default function VitalsTimeline({ activePart }: { activePart: string | null }) {
   const [selectedVital, setSelectedVital] = useState<VitalKey>('heartRate');
-  const [activeIndex, setActiveIndex] = useState(mockPatient.vitals.length - 1);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const { toast } = useToast();
+  const { patient, loading: patientLoading } = usePatientData();
 
   const onSummarize = async () => {
+    if (!patient) return;
     setIsSummarizing(true);
     setSummary(null);
 
-    const vitalsData = JSON.stringify(mockPatient.vitals);
-    const startTime = mockPatient.vitals[0].time;
-    const endTime = mockPatient.vitals[mockPatient.vitals.length - 1].time;
+    const vitalsData = JSON.stringify(patient.vitals);
+    const startTime = patient.vitals[0].time;
+    const endTime = patient.vitals[patient.vitals.length - 1].time;
 
     const result = await handleSummarizeTimeline({ vitalsData, startTime, endTime });
 
@@ -73,13 +97,21 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
   }, [activePart, selectedVital]);
   
   const chartData = useMemo(() => {
-    return mockPatient.vitals.map(v => ({
+    if (!patient) return [];
+    return patient.vitals.map(v => ({
       time: new Date(v.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       heartRate: v.heartRate,
       temperature: v.temperature,
       oxygenSaturation: v.oxygenSaturation,
     }));
-  }, []);
+  }, [patient]);
+
+  useEffect(() => {
+    if (chartData.length > 0) {
+        setActiveIndex(chartData.length - 1);
+    }
+  }, [chartData]);
+
 
   const yAxisDomain = useMemo(() => {
     switch(currentVital) {
@@ -90,7 +122,11 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
     }
   }, [currentVital]);
 
-  const activeDataPoint = chartData[activeIndex];
+  const activeDataPoint = activeIndex !== null ? chartData[activeIndex] : null;
+
+  if (patientLoading) {
+      return <TimelineSkeleton />;
+  }
 
   return (
     <Card className="bg-card/50 border-primary/20">
@@ -115,7 +151,7 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
                   variant="outline"
                   size="sm"
                   onClick={onSummarize}
-                  disabled={isSummarizing}
+                  disabled={isSummarizing || !patient}
                   className="shrink-0"
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
@@ -128,9 +164,12 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <AreaChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 0 }}
              onMouseMove={(state) => {
-                if (state.isTooltipActive && state.activeTooltipIndex) {
+                if (state.isTooltipActive && state.activeTooltipIndex !== undefined) {
                   setActiveIndex(state.activeTooltipIndex);
                 }
+              }}
+              onMouseLeave={() => {
+                if(chartData.length > 0) setActiveIndex(chartData.length - 1);
               }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />

@@ -1,7 +1,8 @@
-import { mockPatient } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeartPulse, Thermometer, Droplets, Gauge } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { usePatientData } from "@/context/patient-data-context";
+import { Skeleton } from "../ui/skeleton";
 
 interface VitalCardProps {
   Icon: LucideIcon;
@@ -26,8 +27,37 @@ function VitalCard({ Icon, title, value, unit, colorClass }: VitalCardProps) {
   );
 }
 
+function VitalsSummarySkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <Card key={i} className="flex-1 bg-card/50 border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-5 w-5" />
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-2">
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-10" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
 export default function VitalsSummary() {
-  const latestVitals = mockPatient.vitals[mockPatient.vitals.length - 1];
+  const { patient, loading } = usePatientData();
+  
+  if (loading) {
+    return <VitalsSummarySkeleton />;
+  }
+  
+  const latestVitals = patient?.vitals[patient.vitals.length - 1];
+
+  if (!latestVitals) {
+    return <VitalsSummarySkeleton />;
+  }
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Siren, Sparkles, Lightbulb } from 'lucide-react';
 import { handleEmergencyTriage, handleGenerateRecommendation } from '@/app/actions';
-import { mockPatient } from '@/lib/mock-data';
 import type { TriageResult, RecommendationResult } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePatientData } from '@/context/patient-data-context';
 
 export default function AlertsPanel() {
   const [isTriageLoading, setIsTriageLoading] = useState(false);
@@ -16,15 +16,25 @@ export default function AlertsPanel() {
   const [triageResult, setTriageResult] = useState<TriageResult>(null);
   const [recommendationResult, setRecommendationResult] = useState<RecommendationResult>(null);
   const { toast } = useToast();
+  const { patient, loading: patientLoading } = usePatientData();
+
+  const getLatestVitals = () => {
+    if (!patient || patient.vitals.length === 0) return null;
+    return patient.vitals[patient.vitals.length - 1];
+  }
 
   const onTriage = async () => {
+    const latestVitals = getLatestVitals();
+    if (!latestVitals) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No vitals data available.' });
+        return;
+    }
+    
     setIsTriageLoading(true);
     setTriageResult(null);
     setRecommendationResult(null);
 
-    const latestVitals = mockPatient.vitals[mockPatient.vitals.length - 1];
     const patientVitals = JSON.stringify(latestVitals);
-
     const result = await handleEmergencyTriage({ patientVitals });
 
     if (result.error) {
@@ -41,11 +51,17 @@ export default function AlertsPanel() {
   };
   
   const onGetRecommendation = async () => {
+    const latestVitals = getLatestVitals();
+    if (!latestVitals) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No vitals data available.' });
+        setIsRecommendationLoading(false);
+        return;
+    }
+    
     setIsRecommendationLoading(true);
     setRecommendationResult(null);
     setTriageResult(null);
 
-    const latestVitals = mockPatient.vitals[mockPatient.vitals.length - 1];
     const input = {
       heartRate: latestVitals.heartRate,
       temperature: latestVitals.temperature,
@@ -71,9 +87,11 @@ export default function AlertsPanel() {
   };
 
   useEffect(() => {
-    onGetRecommendation();
+    if (!patientLoading && patient) {
+      onGetRecommendation();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [patientLoading, patient]);
 
   const getPriorityBadgeColor = (priority: 'High' | 'Medium' | 'Low' | 'low' | 'medium' | 'high' | undefined) => {
     switch(priority?.toLowerCase()) {
@@ -94,7 +112,7 @@ export default function AlertsPanel() {
         <CardDescription>Real-time analysis and recommendations.</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 space-y-4">
-        {(isTriageLoading || isRecommendationLoading) && (
+        {(isTriageLoading || isRecommendationLoading || patientLoading) && (
           <div className="space-y-3">
             <Skeleton className="h-6 w-1/2" />
             <Skeleton className="h-4 w-full" />
@@ -125,7 +143,7 @@ export default function AlertsPanel() {
           </div>
         )}
         
-        {!triageResult && !recommendationResult && !isTriageLoading && !isRecommendationLoading && (
+        {!triageResult && !recommendationResult && !isTriageLoading && !isRecommendationLoading && !patientLoading && (
             <div className="p-4 bg-muted/30 rounded-lg text-sm text-muted-foreground text-center">
                 Run AI analysis for more insights.
             </div>
@@ -134,7 +152,7 @@ export default function AlertsPanel() {
       <CardFooter className="flex flex-col sm:flex-row gap-2">
         <Button
           onClick={onGetRecommendation}
-          disabled={isRecommendationLoading || isTriageLoading}
+          disabled={isRecommendationLoading || isTriageLoading || patientLoading}
           variant="outline"
           className="w-full font-bold"
         >
@@ -143,7 +161,7 @@ export default function AlertsPanel() {
         </Button>
         <Button
           onClick={onTriage}
-          disabled={isTriageLoading || isRecommendationLoading}
+          disabled={isTriageLoading || isRecommendationLoading || patientLoading}
           className="w-full font-bold text-lg bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-all"
         >
           <Siren className="mr-2 h-5 w-5 animate-pulse" />

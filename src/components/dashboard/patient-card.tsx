@@ -4,12 +4,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Smartphone, Watch, Cpu } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const deviceIcons: Record<string, LucideIcon> = {
   sw01: Watch,
   sp02: Smartphone,
   si03: Cpu,
 };
+
+export function PatientCardSkeleton() {
+  return (
+    <div className="p-2 space-y-4">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-16 w-16 rounded-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+      <Card className="bg-background/50 border-primary/20">
+        <CardHeader className="p-3">
+          <CardTitle className="text-base font-headline">Connected Devices</CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-12" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 export function PatientCard({ patient }: { patient: Patient }) {
   return (
