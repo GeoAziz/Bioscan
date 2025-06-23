@@ -24,6 +24,7 @@ export interface NotificationPreferences {
 
 export interface Patient {
   name: string;
+  email: string;
   avatarUrl: string;
   devices: Device[];
   vitals: Vital[];

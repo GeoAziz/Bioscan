@@ -19,8 +19,9 @@ const generateVitals = (): Vital[] => {
   return vitals;
 };
 
-export const mockPatient: Patient = {
+export const mockPatient: Omit<Patient, 'role'> = {
   name: 'Alex Ryder',
+  email: 'alex.ryder@example.com',
   avatarUrl: 'https://placehold.co/100x100.png',
   devices: [
     {

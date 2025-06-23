@@ -2,8 +2,9 @@
 import { triageEmergency, TriageEmergencyInput, TriageEmergencyOutput } from '@/ai/flows/triage-emergency'
 import { summarizeTimeline, SummarizeTimelineInput, SummarizeTimelineOutput } from '@/ai/flows/summarize-timeline';
 import { generateRecommendation, GenerateRecommendationInput, GenerateRecommendationOutput } from '@/ai/flows/generate-recommendation-from-vitals';
-import { updatePatientProfile, getPatientsForDoctor } from '@/services/patient-service';
+import { updatePatientProfile, getPatientsForDoctor, initializePatientData } from '@/services/patient-service';
 import type { Patient } from '@/lib/types';
+import { mockPatient } from '@/lib/mock-data';
 
 export async function handleEmergencyTriage(patientVitals: TriageEmergencyInput): Promise<TriageEmergencyOutput | { error: string }> {
   try {
@@ -60,4 +61,30 @@ export async function handleGetPatientsForDoctor(doctorId: string): Promise<{ pa
         console.error('Error fetching patients for doctor:', error);
         return { error: 'Failed to fetch patient list.' };
     }
+}
+
+export async function handleCreateUserProfile(userData: {
+  uid: string;
+  name: string;
+  email: string | null;
+  avatarUrl: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!userData.uid) {
+      throw new Error("User ID is missing.");
+    }
+    const newPatientData: Patient = {
+      ...mockPatient,
+      name: userData.name,
+      email: userData.email || '',
+      avatarUrl: userData.avatarUrl || mockPatient.avatarUrl,
+      role: 'patient',
+    };
+    await initializePatientData(userData.uid, newPatientData);
+    return { success: true };
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create user profile.';
+    return { success: false, error: errorMessage };
+  }
 }

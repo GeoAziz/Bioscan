@@ -54,7 +54,7 @@ function SidebarNav() {
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
         });
-        router.push('/');
+        router.push('/login');
     };
 
     return (
@@ -87,7 +87,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/');
+      router.push('/login');
     }
   }, [user, loading, router]);
 

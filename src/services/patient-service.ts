@@ -20,6 +20,7 @@ export async function getPatient(userId: string): Promise<Patient | null> {
 
   return {
     name: userData.name,
+    email: userData.email,
     avatarUrl: userData.avatarUrl,
     devices: userData.devices || [],
     vitals: userData.vitals || [],
@@ -50,17 +51,18 @@ export async function getPatientsForDoctor(doctorId: string): Promise<(Patient &
 export async function initializePatientData(userId: string, patientData: Patient): Promise<void> {
   if (!db) return;
   const userDocRef = doc(db, 'users', userId);
-  const batch = writeBatch(db);
-
-  const userData = {
+  
+  // Ensure we don't accidentally overwrite vitals or devices with empty arrays
+  // if they are already being populated by the mock script.
+  const initialData = {
     ...patientData,
     notificationPreferences: patientData.notificationPreferences || defaultNotificationPreferences,
     role: patientData.role || 'patient',
+    vitals: patientData.vitals || [],
+    devices: patientData.devices || [],
   };
 
-  batch.set(userDocRef, userData);
-
-  await batch.commit();
+  await setDoc(userDocRef, initialData);
 }
 
 export async function updatePatientProfile(userId: string, data: Partial<Patient>): Promise<void> {

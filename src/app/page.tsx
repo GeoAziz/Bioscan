@@ -5,12 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DnaStrandIcon } from '@/components/icons/dna-strand';
 import { useAuth } from '@/context/auth-context';
-import { auth } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { toast } from '@/hooks/use-toast';
-import { Chrome } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
-export default function LoginPage() {
+export default function WelcomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -19,34 +17,6 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [user, router]);
-
-  const handleLogin = async () => {
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Firebase is not configured. Please add your credentials to the .env file.',
-      });
-      return;
-    }
-
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome to BioScan!',
-      });
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Error signing in with Google', error);
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Could not sign in with Google. Please try again.',
-      });
-    }
-  };
 
   if (loading || user) {
     return (
@@ -70,16 +40,13 @@ export default function LoginPage() {
             Your personal healthverse. Real-time, immersive, intelligent.
           </p>
         </div>
-        <Button
-          size="lg"
-          className="animate-glow-pulse rounded-full px-12 py-6 text-lg font-semibold shadow-lg shadow-primary/30 transition-all hover:shadow-xl hover:shadow-primary/50"
-          aria-label="Sign in with Google"
-          onClick={handleLogin}
-          disabled={loading}
-        >
-          <Chrome className="mr-2" />
-          Sign In with Google
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4">
+            <Button asChild size="lg" className="rounded-full px-12 py-6 text-lg font-semibold shadow-lg shadow-primary/30 transition-all hover:shadow-xl hover:shadow-primary/50">
+              <Link href="/login">
+                Get Started <ArrowRight className="ml-2" />
+              </Link>
+            </Button>
+        </div>
       </div>
     </main>
   );

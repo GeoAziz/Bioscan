@@ -1,12 +1,11 @@
 /**
- * @fileoverview This script populates the Firestore database with mock user and patient data.
- * It now creates one doctor and multiple patients assigned to that doctor.
+ * @fileoverview This script populates the Firestore database and Firebase Auth with mock users.
+ * It creates one doctor and multiple patients with pre-defined email/password credentials.
  *
  * To run this script, use the command: `npm run db:populate`
  *
  * It uses the Firebase Admin SDK, which requires a service account key.
  * Ensure your `google-application-credentials.json` file is present in the project root.
- * The Admin SDK bypasses security rules, allowing it to write data for multiple users.
  */
 
 import admin from 'firebase-admin';
@@ -26,6 +25,7 @@ try {
 }
 
 const db = admin.firestore();
+const auth = admin.auth();
 
 // --- Mock Data Generation ---
 
@@ -49,113 +49,109 @@ const generateVitals = (numEntries: number): Vital[] => {
 };
 
 const mockDevices: Device[] = [
-    {
-      id: 'sw01',
-      name: 'SmartWatch 7',
-      battery: 82,
-      signal: 'strong',
-      lastSync: '2m ago',
-    },
-    {
-      id: 'sp02',
-      name: 'SmartPatch+',
-      battery: 95,
-      signal: 'strong',
-      lastSync: '1m ago',
-    },
-    {
-      id: 'si03',
-      name: 'Neural-Implant X',
-      battery: 100,
-      signal: 'strong',
-      lastSync: '<1m ago',
-    },
+    { id: 'sw01', name: 'SmartWatch 7', battery: 82, signal: 'strong', lastSync: '2m ago' },
+    { id: 'sp02', name: 'SmartPatch+', battery: 95, signal: 'strong', lastSync: '1m ago' },
+    { id: 'si03', name: 'Neural-Implant X', battery: 100, signal: 'strong', lastSync: '<1m ago' },
 ];
 
-// Base user data without roles or doctor assignments
-const mockUsers: Omit<Patient, 'vitals' | 'role' | 'doctorId'>[] = [
+const mockUsers: Omit<Patient, 'vitals'>[] = [
   {
-    name: 'Dr. Eleanor Vance', // The Doctor
+    email: 'doctor@bioscan.io',
+    name: 'Dr. Eleanor Vance',
     avatarUrl: 'https://placehold.co/100x100.png',
     devices: mockDevices,
     notificationPreferences: { highPriorityAlerts: true, newRecommendations: false },
+    role: 'doctor',
   },
   {
-    name: 'Marcus Thorne', // Patient 1
+    email: 'marcus@bioscan.io',
+    name: 'Marcus Thorne',
     avatarUrl: 'https://placehold.co/100x100.png',
-    devices: mockDevices.slice(0,2),
+    devices: mockDevices.slice(0, 2),
     notificationPreferences: { highPriorityAlerts: true, newRecommendations: true },
+    role: 'patient',
   },
   {
-    name: 'Isabelle Rossi', // Patient 2
+    email: 'isabelle@bioscan.io',
+    name: 'Isabelle Rossi',
     avatarUrl: 'https://placehold.co/100x100.png',
     devices: mockDevices,
     notificationPreferences: { highPriorityAlerts: false, newRecommendations: true },
+    role: 'patient',
   },
-  {
-    name: 'Julian Navarro', // Patient 3
-    avatarUrl: 'https://placehold.co/100x100.png',
-    devices: mockDevices.slice(1,3),
-    notificationPreferences: { highPriorityAlerts: true, newRecommendations: false },
-  },
-  {
-    name: 'Sofia Chen', // Patient 4
-    avatarUrl: 'https://placehold.co/100x100.png',
-    devices: mockDevices,
-    notificationPreferences: { highPriorityAlerts: false, newRecommendations: false },
-  }
 ];
 
-
 async function populateDatabase() {
-  console.log('Starting database population...');
-
-  const batch = db.batch();
+  console.log('Starting database and auth population...');
+  const password = 'password123';
   let doctorId = '';
-  let userCount = 0;
 
-  // First, create the doctor to get their ID
+  // Create the doctor first
   const doctorData = mockUsers[0];
-  const doctorUserId = `mock-user-doctor-${Math.random().toString(36).substring(2, 12)}`;
-  doctorId = doctorUserId;
-  console.log(`  -> Preparing DOCTOR: ${doctorData.name} (ID: ${doctorId})`);
-  const doctorDocRef = db.collection('users').doc(doctorId);
-  const fullDoctorData: Patient = {
-    ...doctorData,
-    vitals: generateVitals(168),
-    role: 'doctor',
-  };
-  batch.set(doctorDocRef, fullDoctorData);
-  userCount++;
-
-  // Then create patients and assign them to the doctor
-  for (let i = 1; i < mockUsers.length; i++) {
-    const user = mockUsers[i];
-    const userId = `mock-user-patient-${Math.random().toString(36).substring(2, 15)}`;
-    console.log(`  -> Preparing PATIENT: ${user.name} (ID: ${userId}), assigned to Dr. Vance`);
-    
-    const userDocRef = db.collection('users').doc(userId);
-    
-    const patientData: Patient = {
-      ...user,
-      vitals: generateVitals(168),
-      role: 'patient',
-      doctorId: doctorId,
-    };
-
-    batch.set(userDocRef, patientData);
-    userCount++;
-  }
-
   try {
-    await batch.commit();
-    console.log(`\n✅ Success! Populated database with ${userCount} mock users (1 doctor, ${userCount -1} patients).`);
-    console.log("Each user has 7 days of hourly vital sign data.");
-    console.log("You can now go to your Firebase Console to see the new data in the 'users' collection.");
+    console.log(`  -> Creating auth user for DOCTOR: ${doctorData.email}`);
+    const doctorAuthRecord = await auth.createUser({
+      email: doctorData.email,
+      password: password,
+      displayName: doctorData.name,
+      photoURL: doctorData.avatarUrl,
+    });
+    doctorId = doctorAuthRecord.uid;
+    console.log(`     Auth user created with UID: ${doctorId}`);
 
-  } catch (error) {
-    console.error('❌ Error committing batch:', error);
+    const doctorFirestoreData: Patient = {
+      ...doctorData,
+      vitals: generateVitals(168),
+    };
+    await db.collection('users').doc(doctorId).set(doctorFirestoreData);
+    console.log(`     Firestore profile created for ${doctorData.name}`);
+
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-exists') {
+      console.log(`     Auth user ${doctorData.email} already exists. Fetching UID.`);
+      const existingUser = await auth.getUserByEmail(doctorData.email);
+      doctorId = existingUser.uid;
+    } else {
+      console.error(`❌ Error creating doctor ${doctorData.email}:`, error);
+      return; // Stop if doctor creation fails
+    }
   }
+
+  // Create the patients
+  const patientUsers = mockUsers.slice(1);
+  for (const patientData of patientUsers) {
+    try {
+      console.log(`  -> Creating auth user for PATIENT: ${patientData.email}`);
+      const patientAuthRecord = await auth.createUser({
+        email: patientData.email,
+        password: password,
+        displayName: patientData.name,
+        photoURL: patientData.avatarUrl,
+      });
+      const patientId = patientAuthRecord.uid;
+      console.log(`     Auth user created with UID: ${patientId}`);
+
+      const patientFirestoreData: Patient = {
+        ...patientData,
+        vitals: generateVitals(168),
+        doctorId: doctorId,
+      };
+      await db.collection('users').doc(patientId).set(patientFirestoreData);
+      console.log(`     Firestore profile for ${patientData.name} created and assigned to Dr. Vance.`);
+
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-exists') {
+        console.log(`     Auth user ${patientData.email} already exists. Skipping.`);
+      } else {
+        console.error(`❌ Error creating patient ${patientData.email}:`, error);
+      }
+    }
+  }
+
+  console.log(`\n✅ Success! Populated database and auth with ${mockUsers.length} mock users.`);
+  console.log("You can now log in with the following credentials:");
+  console.log("  Doctor: doctor@bioscan.io / password123");
+  console.log("  Patient: marcus@bioscan.io / password123");
 }
 
 populateDatabase();
