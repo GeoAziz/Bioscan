@@ -43,3 +43,13 @@ export type TriageResult = {
   priority?: undefined;
   explanation?: undefined;
 } | null;
+
+export type RecommendationResult = {
+  recommendation: string;
+  urgency: 'low' | 'medium' | 'high';
+  error?: undefined;
+} | {
+  error: string;
+  recommendation?: undefined;
+  urgency?: undefined;
+} | null;
