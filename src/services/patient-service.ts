@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import type { Patient, NotificationPreferences } from '@/lib/types';
 
 const defaultNotificationPreferences: NotificationPreferences = {
@@ -24,8 +24,28 @@ export async function getPatient(userId: string): Promise<Patient | null> {
     devices: userData.devices || [],
     vitals: userData.vitals || [],
     notificationPreferences: userData.notificationPreferences || defaultNotificationPreferences,
+    role: userData.role || 'patient',
+    doctorId: userData.doctorId,
   } as Patient;
 }
+
+export async function getPatientsForDoctor(doctorId: string): Promise<(Patient & { id: string })[]> {
+    if (!db) return [];
+
+    const q = query(collection(db, 'users'), where('doctorId', '==', doctorId));
+    const querySnapshot = await getDocs(q);
+
+    const patients: (Patient & { id: string })[] = [];
+    querySnapshot.forEach((doc) => {
+        patients.push({
+            id: doc.id,
+            ...(doc.data() as Patient)
+        });
+    });
+
+    return patients;
+}
+
 
 export async function initializePatientData(userId: string, patientData: Patient): Promise<void> {
   if (!db) return;
@@ -34,7 +54,8 @@ export async function initializePatientData(userId: string, patientData: Patient
 
   const userData = {
     ...patientData,
-    notificationPreferences: patientData.notificationPreferences || defaultNotificationPreferences
+    notificationPreferences: patientData.notificationPreferences || defaultNotificationPreferences,
+    role: patientData.role || 'patient',
   };
 
   batch.set(userDocRef, userData);

@@ -12,14 +12,13 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { PatientCard, PatientCardSkeleton } from "@/components/dashboard/patient-card";
-import { Bell, LogOut, Settings } from "lucide-react";
+import { Bell, LogOut, Settings, Shield } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "@/hooks/use-toast";
 import { PatientDataProvider, usePatientData } from "@/context/patient-data-context";
-import { Skeleton } from "@/components/ui/skeleton";
 import { DnaStrandIcon } from "@/components/icons/dna-strand";
 
 function DashboardSkeleton() {
@@ -44,6 +43,40 @@ function SidebarPatientCard() {
   return <PatientCard patient={patient} />;
 }
 
+function SidebarNav() {
+    const { patient } = usePatientData();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        if (!auth) return;
+        await signOut(auth);
+        toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+        });
+        router.push('/');
+    };
+
+    return (
+        <div className="p-4 flex flex-col gap-2">
+            {patient?.role === 'doctor' && (
+                <Button asChild variant="ghost" className="w-full justify-start gap-2 bg-accent/20 text-accent-foreground border border-accent/50">
+                    <Link href="/dashboard/admin">
+                        <Shield /> Admin Panel
+                    </Link>
+                </Button>
+            )}
+            <Button asChild variant="ghost" className="w-full justify-start gap-2">
+            <Link href="/dashboard/settings">
+                <Settings/> Settings
+            </Link>
+            </Button>
+            <Button variant="ghost" className="justify-start gap-2"><Bell/> Notifications</Button>
+            <Button variant="ghost" onClick={handleLogout} className="w-full justify-start gap-2"><LogOut/> Log Out</Button>
+        </div>
+    )
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -51,16 +84,6 @@ export default function DashboardLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-
-  const handleLogout = async () => {
-    if (!auth) return;
-    await signOut(auth);
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
-    router.push('/');
-  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -113,15 +136,7 @@ export default function DashboardLayout({
           <SidebarContent>
             <SidebarPatientCard />
           </SidebarContent>
-          <div className="p-4 flex flex-col gap-2">
-              <Button asChild variant="ghost" className="w-full justify-start gap-2">
-                <Link href="/dashboard/settings">
-                  <Settings/> Settings
-                </Link>
-              </Button>
-              <Button variant="ghost" className="justify-start gap-2"><Bell/> Notifications</Button>
-              <Button variant="ghost" onClick={handleLogout} className="w-full justify-start gap-2"><LogOut/> Log Out</Button>
-          </div>
+          <SidebarNav />
         </Sidebar>
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>

@@ -1,5 +1,6 @@
 /**
  * @fileoverview This script populates the Firestore database with mock user and patient data.
+ * It now creates one doctor and multiple patients assigned to that doctor.
  *
  * To run this script, use the command: `npm run db:populate`
  *
@@ -71,33 +72,34 @@ const mockDevices: Device[] = [
     },
 ];
 
-const mockUsers: Omit<Patient, 'vitals'>[] = [
+// Base user data without roles or doctor assignments
+const mockUsers: Omit<Patient, 'vitals' | 'role' | 'doctorId'>[] = [
   {
-    name: 'Eleanor Vance',
+    name: 'Dr. Eleanor Vance', // The Doctor
     avatarUrl: 'https://placehold.co/100x100.png',
     devices: mockDevices,
     notificationPreferences: { highPriorityAlerts: true, newRecommendations: false },
   },
   {
-    name: 'Marcus Thorne',
+    name: 'Marcus Thorne', // Patient 1
     avatarUrl: 'https://placehold.co/100x100.png',
     devices: mockDevices.slice(0,2),
     notificationPreferences: { highPriorityAlerts: true, newRecommendations: true },
   },
   {
-    name: 'Isabelle Rossi',
+    name: 'Isabelle Rossi', // Patient 2
     avatarUrl: 'https://placehold.co/100x100.png',
     devices: mockDevices,
     notificationPreferences: { highPriorityAlerts: false, newRecommendations: true },
   },
   {
-    name: 'Julian Navarro',
+    name: 'Julian Navarro', // Patient 3
     avatarUrl: 'https://placehold.co/100x100.png',
     devices: mockDevices.slice(1,3),
     notificationPreferences: { highPriorityAlerts: true, newRecommendations: false },
   },
   {
-    name: 'Sofia Chen',
+    name: 'Sofia Chen', // Patient 4
     avatarUrl: 'https://placehold.co/100x100.png',
     devices: mockDevices,
     notificationPreferences: { highPriorityAlerts: false, newRecommendations: false },
@@ -109,17 +111,36 @@ async function populateDatabase() {
   console.log('Starting database population...');
 
   const batch = db.batch();
+  let doctorId = '';
   let userCount = 0;
 
-  for (const user of mockUsers) {
-    const userId = `mock-user-${Math.random().toString(36).substring(2, 15)}`;
-    console.log(`  -> Preparing data for ${user.name} (ID: ${userId})`);
+  // First, create the doctor to get their ID
+  const doctorData = mockUsers[0];
+  const doctorUserId = `mock-user-doctor-${Math.random().toString(36).substring(2, 12)}`;
+  doctorId = doctorUserId;
+  console.log(`  -> Preparing DOCTOR: ${doctorData.name} (ID: ${doctorId})`);
+  const doctorDocRef = db.collection('users').doc(doctorId);
+  const fullDoctorData: Patient = {
+    ...doctorData,
+    vitals: generateVitals(168),
+    role: 'doctor',
+  };
+  batch.set(doctorDocRef, fullDoctorData);
+  userCount++;
+
+  // Then create patients and assign them to the doctor
+  for (let i = 1; i < mockUsers.length; i++) {
+    const user = mockUsers[i];
+    const userId = `mock-user-patient-${Math.random().toString(36).substring(2, 15)}`;
+    console.log(`  -> Preparing PATIENT: ${user.name} (ID: ${userId}), assigned to Dr. Vance`);
     
     const userDocRef = db.collection('users').doc(userId);
     
     const patientData: Patient = {
       ...user,
-      vitals: generateVitals(168), // 168 hours = 7 days of hourly data
+      vitals: generateVitals(168),
+      role: 'patient',
+      doctorId: doctorId,
     };
 
     batch.set(userDocRef, patientData);
@@ -128,7 +149,7 @@ async function populateDatabase() {
 
   try {
     await batch.commit();
-    console.log(`\n✅ Success! Populated database with ${userCount} mock users.`);
+    console.log(`\n✅ Success! Populated database with ${userCount} mock users (1 doctor, ${userCount -1} patients).`);
     console.log("Each user has 7 days of hourly vital sign data.");
     console.log("You can now go to your Firebase Console to see the new data in the 'users' collection.");
 

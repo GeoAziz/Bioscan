@@ -1,4 +1,3 @@
-// src/context/PatientDataContext.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -34,10 +33,11 @@ export const PatientDataProvider = ({ userId, children }: { userId: string, chil
         let patientData = await getPatient(userId);
         if (!patientData) {
           // If no data, initialize with mock data
-          const newPatientData = {
+          const newPatientData: Patient = {
             ...mockPatient,
             name: auth.currentUser?.displayName || 'New User',
             avatarUrl: auth.currentUser?.photoURL || mockPatient.avatarUrl,
+            role: 'patient', // Default role for new sign-ups
           };
           await initializePatientData(userId, newPatientData);
           patientData = await getPatient(userId);

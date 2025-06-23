@@ -28,6 +28,8 @@ export interface Patient {
   devices: Device[];
   vitals: Vital[];
   notificationPreferences?: NotificationPreferences;
+  role: 'patient' | 'doctor';
+  doctorId?: string;
 }
 
 export interface Alert {

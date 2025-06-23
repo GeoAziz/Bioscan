@@ -2,7 +2,7 @@
 import { triageEmergency, TriageEmergencyInput, TriageEmergencyOutput } from '@/ai/flows/triage-emergency'
 import { summarizeTimeline, SummarizeTimelineInput, SummarizeTimelineOutput } from '@/ai/flows/summarize-timeline';
 import { generateRecommendation, GenerateRecommendationInput, GenerateRecommendationOutput } from '@/ai/flows/generate-recommendation-from-vitals';
-import { updatePatientProfile } from '@/services/patient-service';
+import { updatePatientProfile, getPatientsForDoctor } from '@/services/patient-service';
 import type { Patient } from '@/lib/types';
 
 export async function handleEmergencyTriage(patientVitals: TriageEmergencyInput): Promise<TriageEmergencyOutput | { error: string }> {
@@ -50,4 +50,14 @@ export async function handleUpdateProfile(
     const errorMessage = error instanceof Error ? error.message : 'Failed to update profile.';
     return { success: false, error: errorMessage };
   }
+}
+
+export async function handleGetPatientsForDoctor(doctorId: string): Promise<{ patients: (Patient & { id: string })[] } | { error: string }> {
+    try {
+        const patients = await getPatientsForDoctor(doctorId);
+        return { patients };
+    } catch (error) {
+        console.error('Error fetching patients for doctor:', error);
+        return { error: 'Failed to fetch patient list.' };
+    }
 }
