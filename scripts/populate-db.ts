@@ -10,7 +10,7 @@
 
 import admin from 'firebase-admin';
 import type { Patient, Vital, Device } from '@/lib/types';
-import { serviceAccount } from '../google-application-credentials.json';
+import serviceAccount from '../google-application-credentials.json';
 
 // Initialize Firebase Admin SDK
 try {
