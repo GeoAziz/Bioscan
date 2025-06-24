@@ -40,7 +40,7 @@ export const UserDataProvider = ({ userId, children }: { userId: string, childre
             ...mockPatient,
             name: authUser.displayName || 'New User',
             email: authUser.email || '',
-            avatarUrl: authUser.photoURL || mockPatient.avatarUrl,
+            avatarUrl: authUser.photoURL || 'https://placehold.co/100x100.png',
             role: 'patient', // Default role for new sign-ups
           };
           await initializeUserData(userId, newUser);
