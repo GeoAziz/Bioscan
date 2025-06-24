@@ -37,7 +37,7 @@ export default function AdminPage() {
   useEffect(() => {
     setLoading(true);
     handleGetAllUsers().then((result) => {
-      if (result.error) {
+      if ('error' in result) {
         toast({
           variant: 'destructive',
           title: 'Error fetching users',

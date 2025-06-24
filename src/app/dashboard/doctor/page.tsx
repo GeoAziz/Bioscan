@@ -39,7 +39,7 @@ export default function DoctorPage() {
     if (user) {
       setLoading(true);
       handleGetPatientsForDoctor(user.uid).then((result) => {
-        if (result.error) {
+        if ('error' in result) {
           toast({
             variant: 'destructive',
             title: 'Error fetching patients',
