@@ -1,13 +1,13 @@
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, writeBatch, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import type { Patient, NotificationPreferences } from '@/lib/types';
+import type { User, NotificationPreferences } from '@/lib/types';
 
 const defaultNotificationPreferences: NotificationPreferences = {
   highPriorityAlerts: true,
   newRecommendations: false,
 };
 
-export async function getPatient(userId: string): Promise<Patient | null> {
+export async function getPatient(userId: string): Promise<User | null> {
   if (!db) return null;
   const userDocRef = doc(db, 'users', userId);
   const userDocSnap = await getDoc(userDocRef);
@@ -27,20 +27,20 @@ export async function getPatient(userId: string): Promise<Patient | null> {
     notificationPreferences: userData.notificationPreferences || defaultNotificationPreferences,
     role: userData.role || 'patient',
     doctorId: userData.doctorId,
-  } as Patient;
+  } as User;
 }
 
-export async function getPatientsForDoctor(doctorId: string): Promise<(Patient & { id: string })[]> {
+export async function getPatientsForDoctor(doctorId: string): Promise<(User & { id: string })[]> {
     if (!db) return [];
 
     const q = query(collection(db, 'users'), where('doctorId', '==', doctorId));
     const querySnapshot = await getDocs(q);
 
-    const patients: (Patient & { id: string })[] = [];
+    const patients: (User & { id: string })[] = [];
     querySnapshot.forEach((doc) => {
         patients.push({
             id: doc.id,
-            ...(doc.data() as Patient)
+            ...(doc.data() as User)
         });
     });
 
@@ -48,7 +48,7 @@ export async function getPatientsForDoctor(doctorId: string): Promise<(Patient &
 }
 
 
-export async function initializePatientData(userId: string, patientData: Patient): Promise<void> {
+export async function initializePatientData(userId: string, patientData: User): Promise<void> {
   if (!db) return;
   const userDocRef = doc(db, 'users', userId);
   
@@ -65,7 +65,7 @@ export async function initializePatientData(userId: string, patientData: Patient
   await setDoc(userDocRef, initialData);
 }
 
-export async function updatePatientProfile(userId: string, data: Partial<Patient>): Promise<void> {
+export async function updatePatientProfile(userId: string, data: Partial<User>): Promise<void> {
   if (!db) return;
   const userDocRef = doc(db, 'users', userId);
   await updateDoc(userDocRef, data);

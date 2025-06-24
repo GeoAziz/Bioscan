@@ -1,13 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Patient } from '@/lib/types';
-import { getPatient, initializePatientData } from '@/services/patient-service';
+import type { User } from '@/lib/types';
+import { getUser, initializeUserData } from '@/services/user-service';
 import { mockPatient } from '@/lib/mock-data';
 import { useAuth } from './auth-context';
 
 interface PatientDataContextType {
-  patient: Patient | null;
+  patient: User | null;
   loading: boolean;
   error: Error | null;
 }
@@ -19,31 +19,31 @@ const PatientDataContext = createContext<PatientDataContextType>({
 });
 
 export const PatientDataProvider = ({ userId, children }: { userId: string, children: React.ReactNode }) => {
-  const { user } = useAuth(); // Get the full user object from auth context
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const { user: authUser } = useAuth(); // Get the full user object from auth context
+  const [patient, setPatient] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!userId || !user) return;
+    if (!userId || !authUser) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        let patientData = await getPatient(userId);
+        let patientData = await getUser(userId);
         if (!patientData) {
           // If no data, initialize with data from Auth context
           console.log('No patient data found, initializing new profile...');
-          const newPatientData: Patient = {
+          const newPatientData: User = {
             ...mockPatient,
-            name: user.displayName || 'New User',
-            email: user.email || '',
-            avatarUrl: user.photoURL || mockPatient.avatarUrl,
+            name: authUser.displayName || 'New User',
+            email: authUser.email || '',
+            avatarUrl: authUser.photoURL || 'https://placehold.co/100x100.png',
             role: 'patient', // Default role for new sign-ups
           };
-          await initializePatientData(userId, newPatientData);
-          patientData = await getPatient(userId); // Re-fetch after creation
+          await initializeUserData(userId, newPatientData);
+          patientData = await getUser(userId); // Re-fetch after creation
         }
         setPatient(patientData);
       } catch (err) {
@@ -55,7 +55,7 @@ export const PatientDataProvider = ({ userId, children }: { userId: string, chil
     };
 
     fetchData();
-  }, [userId, user]);
+  }, [userId, authUser]);
 
   return (
     <PatientDataContext.Provider value={{ patient, loading, error }}>
