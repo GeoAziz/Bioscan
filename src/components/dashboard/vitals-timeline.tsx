@@ -108,7 +108,7 @@ export default function VitalsTimeline({ activePart }: { activePart: string | nu
 
     const result = await handleSummarizeTimeline({ vitalsData, startTime, endTime });
 
-    if (result.error) {
+    if ('error' in result) {
       toast({
         variant: 'destructive',
         title: 'Summary Error',
