@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Siren, Sparkles, Lightbulb } from 'lucide-react';
 import { handleEmergencyTriage, handleGenerateRecommendation } from '@/app/actions';
@@ -21,7 +20,7 @@ export default function AlertsPanel() {
 
   // Effect to show a notification for high-priority triage results
   useEffect(() => {
-    if (triageResult && !triageResult.error && triageResult.priority === 'High') {
+    if (triageResult && 'priority' in triageResult && triageResult.priority === 'High') {
       toast({
         variant: 'destructive',
         title: `🚨 High Priority Alert: ${triageResult.priority} 🚨`,
@@ -50,7 +49,7 @@ export default function AlertsPanel() {
     const patientVitals = JSON.stringify(latestVitals);
     const result = await handleEmergencyTriage({ patientVitals });
 
-    if (result.error) {
+    if ('error' in result) {
       toast({
         variant: 'destructive',
         title: 'Triage Error',
@@ -86,7 +85,7 @@ export default function AlertsPanel() {
 
     const result = await handleGenerateRecommendation(input);
 
-    if (result.error) {
+    if ('error' in result) {
         toast({
             variant: 'destructive',
             title: 'Recommendation Error',
@@ -132,7 +131,7 @@ export default function AlertsPanel() {
             <Skeleton className="h-4 w-3/4" />
           </div>
         )}
-        {recommendationResult && !recommendationResult.error && (
+        {recommendationResult && 'recommendation' in recommendationResult && (
             <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/10 p-4">
                 <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-lg text-primary flex items-center gap-2"><Lightbulb className="w-5 h-5"/> AI Health Tip</h4>
@@ -143,7 +142,7 @@ export default function AlertsPanel() {
                 <p className="font-bold text-xl">{recommendationResult.recommendation}</p>
             </div>
         )}
-        {triageResult && !triageResult.error && (
+        {triageResult && 'priority' in triageResult && (
           <div className="space-y-3 rounded-lg border border-accent/30 bg-accent/10 p-4">
             <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-lg text-primary flex items-center gap-2"><Sparkles className="w-5 h-5"/> AI Triage</h4>
