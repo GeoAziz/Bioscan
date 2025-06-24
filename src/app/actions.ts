@@ -88,7 +88,7 @@ export async function handleCreateUserProfile(userData: {
       ...mockPatient,
       name: userData.name,
       email: userData.email || '',
-      avatarUrl: userData.avatarUrl || mockPatient.avatarUrl,
+      avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
       role: 'patient',
     };
     await initializeUserData(userData.uid, newUser);
